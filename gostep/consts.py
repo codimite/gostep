@@ -1,5 +1,4 @@
-TEMPLATE_REPO = 'https://github.com/codimite/gostep-templates'
-TEMPLATE_BRANCH = 'master'
+TEMPLATE_REPO = 'https://github.com/codimite/gostep-templates/trunk/%s/%s'
 SERVICES = [
     'function',
     'run'

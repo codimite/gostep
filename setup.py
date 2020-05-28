@@ -16,6 +16,6 @@ setup(
     zip_safe = False,
     install_requires = [
         'PyYAML',
-        'gitpython'
+        'svn'
     ]
 )
