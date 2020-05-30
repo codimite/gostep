@@ -27,9 +27,9 @@ def get_all_files_dict(root_dir=os.getcwd()):
         print(traceback.format_exc())
 
 
-def create_dir(root_path, dir_name):
+def get_dir(dir_name, root_path=os.getcwd()):
     """
-        Create a directory.
+        Creates a directory if it does not exist.
 
             Parameters:
                 root_path (string): root directory of the repo
@@ -40,27 +40,25 @@ def create_dir(root_path, dir_name):
     """
     try:
         dir_path = ''.join([root_path, '/', dir_name])
-        os.mkdir(dir_path)
-        print('Created directory %s' % dir_path)
+        if not os.path.exists(dir_path):
+            os.mkdir(dir_path)
+            print('Created directory %s' % dir_path)
         return dir_path
     except Exception:
         print(traceback.format_exc())
 
 
-def copy_dir(dir_name, source_dir, target_dir):
+def copy_dir(source, destination):
     """
         Copy a directory tree and returns destination path.
 
             Parameters:
-                dir_name (string): directory name
-                source_dir (string): source containing root directory path
-                target_dir (string): target root directory path
+                source (string): source containing root directory path
+                destination (string): target root directory path
 
             Returns:
                 destination (string): copied destination path
     """
-    source = ''.join([source_dir, '/', dir_name])
-    destination = ''.join([target_dir, '/', dir_name])
     try:
         if not os.path.exists(destination):
             os.mkdir(destination)
@@ -132,19 +130,20 @@ def get_yaml_dict(yaml_file, source_dir):
         print(traceback.format_exc())
 
 
-def update_yaml_file(yaml_file, source_dir, yaml_dict):
+def build_yaml_file(yaml_file, source_dir, yaml_dict):
     """
         Writes dictionary object to yaml file.
 
             Parameters:
                 yaml_file (string): file name with the extension
                 source_dir (string): target directory
+                yaml_dict (dictionary): dictionary object to get written
 
             Returns:
                 yaml_dict (dictionary): updated dictionary object
     """
     try:
-        with open(''.join([yaml_file, source_dir]), 'w') as yaml_source:
+        with open(''.join([source_dir, '/', yaml_file]), 'w') as yaml_source:
             yaml.dump(yaml_dict, yaml_source)
         return get_yaml_dict(yaml_file, source_dir)
     except Exception:
