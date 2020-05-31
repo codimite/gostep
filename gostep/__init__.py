@@ -1,1 +1,1 @@
-from gostep.aggregator import hey
+from gostep.gcloud_service import hey
