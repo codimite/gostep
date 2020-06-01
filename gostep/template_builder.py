@@ -35,7 +35,8 @@ def bootstrap_project(root_dir, project_name, description, version, authors=[]):
     }
     project_spec = build_yaml_file(ROOT_CONFIG_FILE, root_dir, project_info)
     get_dir(TEMPLATE_DIRECTORY, root_dir)
-    print('Project base %s has been successfully generated.' % project_spec['project'])
+    print('Project base %s has been successfully generated.'
+          % project_spec['project'])
     return project_spec
 
 

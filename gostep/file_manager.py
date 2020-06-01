@@ -4,6 +4,7 @@ import shutil
 import traceback
 from pathlib import Path
 from zipfile import ZipFile
+import json
 
 import yaml
 
@@ -183,5 +184,41 @@ def build_yaml_file(yaml_file, source_dir, yaml_dict):
         with open(''.join([source_dir, '/', yaml_file]), 'w') as yaml_source:
             yaml.dump(yaml_dict, yaml_source)
         return get_yaml_dict(yaml_file, source_dir)
+    except Exception:
+        print(traceback.format_exc())
+
+
+def get_json_from_file(json_file):
+    """
+        Reads and returns a JSON file as an dictionary object.
+
+            Parameters:
+                json_file (string): path to json file
+
+            Returns:
+                json_object (dictionary): json dictionary
+    """
+    try:
+        with open(json_file) as json_file_object:
+            return json.load(json_file_object)
+    except Exception:
+        print(traceback.format_exc())
+
+
+def rewrite_json_file(json_file, json_dict):
+    """
+        Reads and returns a JSON file as an dictionary object.
+
+            Parameters:
+                json_file (string): path to json file
+                json_dict (dictionary): data dictionary object
+
+            Returns:
+                json_object (dictionary): updated json from file
+    """
+    try:
+        with open(json_file, 'w') as json_file_object:
+            json.dump(json_dict, json_file_object)
+        return get_json_from_file(json_file)
     except Exception:
         print(traceback.format_exc())
