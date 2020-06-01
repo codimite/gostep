@@ -1,18 +1,16 @@
-from gostep.file_manager import get_yaml_dict
-from gostep.file_manager import build_yaml_file
-from gostep.file_manager import write_to_file
-from gostep.file_manager import replace_string_in_file
-from gostep.file_manager import get_dir
-from gostep.repo_service import clone_template
-from gostep.file_manager import copy_dir
-
 import re
+
 from gostep.consts import ROOT_CONFIG_FILE
-from gostep.consts import TEMPLATE_DIRECTORY
 from gostep.consts import SERVICE_ENTRY_POINT
+from gostep.consts import TEMPLATE_DIRECTORY
+from gostep.file_manager import build_yaml_file
+from gostep.file_manager import copy_dir
+from gostep.file_manager import get_dir
+from gostep.file_manager import get_yaml_dict
+from gostep.repo_service import clone_template
 
 
-def bootstrap_project(root_dir, project_name, description, version,authors=[]):
+def bootstrap_project(root_dir, project_name, description, version, authors=[]):
     """
         Write root project configuration.
 
@@ -37,7 +35,7 @@ def bootstrap_project(root_dir, project_name, description, version,authors=[]):
     }
     project_spec = build_yaml_file(ROOT_CONFIG_FILE, root_dir, project_info)
     get_dir(TEMPLATE_DIRECTORY, root_dir)
-    print('Project base %s has been successfully generated.'%project_spec['project'])
+    print('Project base %s has been successfully generated.' % project_spec['project'])
     return project_spec
 
 

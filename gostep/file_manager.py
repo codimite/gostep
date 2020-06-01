@@ -3,8 +3,11 @@ import os
 import shutil
 import traceback
 from pathlib import Path
+from zipfile import ZipFile
 
 import yaml
+
+from gostep.consts import GOSTEP_IGNORE_FILE
 
 
 def get_all_files_dict(root_dir=os.getcwd()):
@@ -15,13 +18,15 @@ def get_all_files_dict(root_dir=os.getcwd()):
                 root_dir (string): root directory path
 
             Returns:
-                dir_dict (dictionary): dictionary object containing filename against directory path
+                dir_dict (dictionary): dictionary object containing filename
+                against directory path
     """
     try:
         dir_dict = {}
         for root, dirs, files in os.walk(root_dir):
             for file in files:
-                dir_dict[str(Path(os.path.abspath(os.path.join(root, file))).parent)] = file
+                dir_dict[str(Path(os.path.abspath(os.path.join(root, file)))
+                             .parent)] = file
         return dir_dict
     except Exception:
         print(traceback.format_exc())
@@ -68,6 +73,37 @@ def copy_dir(source, destination):
         print(traceback.format_exc())
 
 
+def create_compressed_file(name, source_dir, target_dir):
+    """
+        Creates a compressed zip file removing given list of files to be
+        ignored.
+
+            Parameters:
+                name (string): name of the compressed file
+                source_dir (string): source directory path
+                target_dir (string): target directory path
+
+            Returns:
+                target_file_path (string): compressed file path
+    """
+    try:
+        target_file_path = ''.join([target_dir, '/', name, '.zip'])
+        compressed_file = ZipFile(target_file_path, "w")
+        ignore_list = get_yaml_dict(GOSTEP_IGNORE_FILE, source_dir).split(' ')
+        for dir_name, sub_dirs, files in os.walk(source_dir):
+            len_dir_path = len(dir_name)
+            for filename in files:
+                file_path = os.path.join(dir_name, filename)
+                if any(substring in file_path for substring in ignore_list):
+                    continue
+                compressed_file.write(file_path, file_path[len_dir_path:])
+        compressed_file.close()
+        print("Successfully created compressed file %s" % target_file_path)
+        return target_file_path
+    except Exception:
+        print(traceback.format_exc())
+
+
 def write_to_file(file_name, dir_path, content):
     """
         Rewrite or create and write to file.
@@ -104,7 +140,8 @@ def replace_string_in_file(file_name, dir_path, source_str, target_str):
     """
     file_path = ''.join([dir_path, '/', file_name])
     try:
-        with fileinput.FileInput(file_path, inplace=True, backup='.bkp') as file_object:
+        with fileinput.FileInput(file_path, inplace=True, backup='.bkp'
+                                 ) as file_object:
             for line in file_object:
                 line.replace(source_str, target_str)
         return file_path
