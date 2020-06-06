@@ -1,3 +1,4 @@
+import subprocess
 import traceback
 
 from google.cloud import storage
@@ -83,6 +84,20 @@ def create_bucket(name, location):
         print(traceback.format_exc())
 
 
+def get_buckets():
+    """
+        Returns a list of bucket objects.
+
+            Returns:
+                buckets (list): list of bucket objects
+    """
+    try:
+        client = get_storage_client()
+        return client.list_buckets()
+    except Exception:
+        print(traceback.format_exc())
+
+
 def get_bucket(name):
     """
         Returns the bucket object.
@@ -136,9 +151,12 @@ def get_cloud_functions(location_path):
     try:
         service_client = get_service_client(
             FUNCTIONS_API, FUNCTIONS_API_VERSION)
-        return service_client.projects().locations().functions().list(
+        functions = service_client.projects().locations().functions().list(
             parent=location_path
-        ).execute()['functions']
+        ).execute()
+        if functions == {} or functions == []:
+            return []
+        return functions['functions']
     except Exception:
         print(traceback.format_exc())
 
@@ -209,3 +227,70 @@ def update_cloud_function(function_path, patch_field, update_spec):
         ).execute()
     except Exception:
         print(traceback.format_exc())
+
+
+def get_projects():
+    """
+        List down available projects.
+
+            Returns:
+                projects_list (object): list of project objects
+    """
+    try:
+        project_list = str(subprocess.check_output(
+            ['gcloud', 'projects', 'list'])).replace('b', '') \
+            .replace('\'', '').split('\\n')
+        return project_list
+    except Exception:
+        print(traceback.format_exc())
+
+
+def get_iam_policy(resource):
+    """
+        Get IAM policy for a given resource.
+
+            Parameters:
+                resource: resource path as
+                /projects/{}/locations/{}/functions/{}
+
+            Returns:
+                iam_policy (object): policy object
+    """
+    try:
+        service_client = get_service_client(FUNCTIONS_API,
+                                            FUNCTIONS_API_VERSION)
+        return service_client.projects().locations().functions().getIamPolicy(
+            resource=resource).execute()
+    except Exception:
+        print(traceback.format_exc())
+
+
+def set_iam_policy(resource, policy_request):
+    """
+        Get IAM policy for a given resource.
+
+            Parameters:
+                resource (string): resource path as
+                /projects/{}/locations/{}/functions/{}
+                policy_request (policy object): policy dictionary object
+
+            Returns:
+                iam_policy (object): policy object
+    """
+    try:
+        service_client = get_service_client(FUNCTIONS_API,
+                                            FUNCTIONS_API_VERSION)
+        return service_client.projects().locations().functions().setIamPolicy(
+            resource=resource, body=policy_request).execute()
+    except Exception:
+        print(traceback.format_exc())
+
+
+def create_credentials(name, display_name):
+    #process = subprocess.check_output(''.join(['gcloud iam service-accounts create ', name,
+               #  ' --display-name ', display_name]), shell=True)
+    create_acc_proc = 'Created service account [test123]'
+    accounts_list_proc = subprocess.check_output('gcloud iam service-accounts list', shell=True)
+    print(str(accounts_list_proc).replace('b', '').split())
+    return True
+

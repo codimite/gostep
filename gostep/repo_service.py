@@ -18,11 +18,11 @@ def clone_template(kind, environment, target_dir):
                 template_dir (str): path of downloaded template
     """
     try:
-        template = TEMPLATE_REPO % (kind, environment)
+        template = ''.join([TEMPLATE_REPO, '/', kind, '/', environment])
         print("Getting %s template for %s..." % (kind, environment))
         svn_client = remote.RemoteClient(template)
         svn_client.checkout(target_dir)
         print("Successfully fetched template")
-        return ''.join([target_dir, '/', kind, '/', environment])
+        return target_dir
     except Exception:
         print(traceback.format_exc())

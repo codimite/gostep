@@ -1,10 +1,10 @@
 import fileinput
+import json
 import os
 import shutil
 import traceback
 from pathlib import Path
 from zipfile import ZipFile
-import json
 
 import yaml
 
@@ -66,9 +66,8 @@ def copy_dir(source, destination):
                 destination (string): copied destination path
     """
     try:
-        if not os.path.exists(destination):
-            os.mkdir(destination)
-        shutil.copytree(source, destination)
+        shutil.copytree(
+            source, destination, ignore=shutil.ignore_patterns('.svn'))
         return destination
     except Exception:
         print(traceback.format_exc())
@@ -218,7 +217,7 @@ def rewrite_json_file(json_file, json_dict):
     """
     try:
         with open(json_file, 'w') as json_file_object:
-            json.dump(json_dict, json_file_object)
+            json.dump(json_dict, json_file_object, indent=4)
         return get_json_from_file(json_file)
     except Exception:
         print(traceback.format_exc())

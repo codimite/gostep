@@ -3,7 +3,7 @@ from setuptools import setup
 setup(
     name='gostep',
     scripts=[
-        'bin/gcloud_service.py'
+        'gostep'
     ],
     version='0.1.0',
     description='Google Serverless Templates Provider',
@@ -14,10 +14,11 @@ setup(
     packages=['gostep'],
     zip_safe=False,
     install_requires=[
-        'PyYAML',
         'svn',
         'google-api-python-client',
         'google-auth-httplib2',
-        'google-auth-oauthlib'
+        'google-auth-oauthlib',
+        'oauth2client',
+        'docopt'
     ]
 )
