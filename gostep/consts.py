@@ -35,5 +35,5 @@ PROJECT_ID = 'project_id'
 SERVICE_ACCOUNT_EMAIL = 'service_account_email'
 
 COMMANDS = [
-    'auth', 'init', 'inside', 'project', 'projects', 'project', 'locations', 'name', 'show', 'base'
+    'auth', 'init', 'inside', 'project', 'projects', 'project', 'locations', 'name', 'show', 'base', 'location'
 ]

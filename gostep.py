@@ -47,6 +47,8 @@ parser.add_argument('-p', '--project', help='Gostep project related operations.'
 
 parser.add_argument('-l', '--locations', help='GCloud locations list')
 
+parser.add_argument('-L', '--location', help='GCloud location Id')
+
 parser.add_argument('-a', '--auth', action='store_true', help='Credentials related operations')
 
 parser.add_argument('-i', '--init', help='Initialize something new. Value must be unique and greater than 6 chars.')
@@ -63,6 +65,8 @@ parser.add_argument('-n', '--name', help='Name identifier. Must be unique and gr
 
 parser.add_argument('-N', '--displayname', help='Display name.')
 
+parser.add_argument('-v', '--version', help='Version of the base.')
+
 args = parser.parse_args(modified_args)
 
 
@@ -70,7 +74,7 @@ args = parser.parse_args(modified_args)
 if args.auth:
     if args.init is not None:
         print('Creating service account authentication file...')
-        project = default_gcloud_project() if args.project is None else args.project
+        project = default_gcloud_project()
         if project == '' or project is None:
             print("Error: Gcloud project is mandatory.")
         else:
@@ -100,16 +104,32 @@ elif args.projects:
 
 elif args.base:
     if args.init is not None:
+        project = default_gcloud_project()
+        inside = '.' if args.inside is None else args.inside
+        if project == '' or project is None:
+            print("Error: Gcloud project is mandatory.\ngcloud config set project <project-id>")
+        else:
+            cred_file_path = ''.join([inside, '/', AUTH_FILE])
+            if not path_exists(cred_file_path):
+                create_credentials(
+                    ''.join([args.init, '-service-account']),
+                    project,
+                    args.init if args.displayname is None else args.displayname,
+                    inside
+                )
+            print(''.join(['Setting credential file in ', cred_file_path]))
+            set_credential_file(cred_file_path)
         locations = get_locations(default_gcloud_project())
         location = None
         if args.location is None or args.location not in locations:
             print('Warning: location is not in available locations. Default location will be set')
+            location = locations[0]['locationId']
         else:
             location = args.location
         bootstrap_base(
-            '.' if args.inside is None else args.inside,
+            inside,
             args.init,
-            '<description>' if args.explains in None else args.explains,
+            '<description>' if args.explains is None else args.explains,
             location,
             '0.1.0' if args.version is None else args.version
         )
