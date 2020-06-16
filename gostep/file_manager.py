@@ -54,6 +54,19 @@ def get_dir(dir_name, root_path=os.getcwd()):
         print(traceback.format_exc())
 
 
+def path_exists(path):
+    """
+         Returns whether the path file or directory path exists.
+
+             Parameters:
+                 path (string): path to file or directory
+
+             Returns:
+                 exists (boolean): file or dir status
+     """
+    return os.path.exists(path)
+
+
 def copy_dir(source, destination):
     """
         Copy a directory tree and returns destination path.

@@ -1,9 +1,9 @@
 import re
 
-from gostep.consts import ROOT_CONFIG_FILE, BUILD_DIR, GOSTEP_BUCKET, SERVICES, \
+from gostep.consts import BASE_CONFIG_FILE, BUILD_DIR, GOSTEP_BUCKET, SERVICES, \
     TEMPLATES, NAME, DESCRIPTION, VERSION, SOURCE_DIRECTORY, SOURCE_ARCHIVE, \
     LOCATION_NAME, KIND, LOCATION_ID, PROJECT_ID, DEFAULT_LOCATION, \
-    SERVICE_ACCOUNT_EMAIL, ENVIRONMENT
+    SERVICE_ACCOUNT_EMAIL, ENVIRONMENT, AUTH_FILE
 from gostep.consts import TEMPLATE_DIRECTORY
 from gostep.file_manager import copy_dir
 from gostep.file_manager import get_dir
@@ -16,8 +16,8 @@ from gostep.gcloud_service import get_cloud_functions, get_buckets, \
 from gostep.repo_service import clone_template
 
 
-def bootstrap_project(root_dir, project_name, description, default_location,
-                      version):
+def bootstrap_base(root_dir, project_name, description, default_location,
+                   version):
     """
         Writes main project configuration.
 
@@ -32,7 +32,7 @@ def bootstrap_project(root_dir, project_name, description, default_location,
                 project_spec (dictionary): generated project specification
     """
     print('Creating project specification...')
-    credentials = get_json_from_file(''.join([root_dir, '/credentials.json']))
+    credentials = get_json_from_file(''.join([root_dir, '/', AUTH_FILE]))
     default_location = default_location if default_location is not None else \
         get_locations(credentials[PROJECT_ID])[0]['locationId']
     project_info = {
@@ -45,7 +45,7 @@ def bootstrap_project(root_dir, project_name, description, default_location,
         TEMPLATES: {},
         SERVICES: {}
     }
-    project_spec = rewrite_json_file(''.join([root_dir, '/', ROOT_CONFIG_FILE]),
+    project_spec = rewrite_json_file(''.join([root_dir, '/', BASE_CONFIG_FILE]),
                                      project_info)
     get_dir(TEMPLATE_DIRECTORY, root_dir)
     print('Project base %s has been successfully generated.'
@@ -85,7 +85,7 @@ def bootstrap_service(root_dir, name, description, environment, version, kind):
         Returns:
             project_spec (object): dictionary object containing configurations
     """
-    project_spec_file = ''.join([root_dir, '/', ROOT_CONFIG_FILE])
+    project_spec_file = ''.join([root_dir, '/', BASE_CONFIG_FILE])
     project_spec = get_json_from_file(project_spec_file)
     service_name = re.sub('[^A-Za-z0-9]+', '-', name).lower()
     if service_name in project_spec[SERVICES].keys():
@@ -98,7 +98,7 @@ def bootstrap_service(root_dir, name, description, environment, version, kind):
         project_spec[TEMPLATES][environment] = source_template.replace(
             ''.join([root_dir, '/']), '')
         project_spec = rewrite_json_file(''.join(
-            [root_dir, '/', ROOT_CONFIG_FILE]), project_spec)
+            [root_dir, '/', BASE_CONFIG_FILE]), project_spec)
     sources_root = get_dir('src', root_dir)
     source_path = copy_dir(template_dir, ''.join([sources_root, '/',
                                                   service_name]))
@@ -232,7 +232,7 @@ def deploy(name, location, workspace_dir):
         Returns:
             is_exists (boolean): true, if policy bindings exists
     """
-    project_spec_file = ''.join([workspace_dir, '/', ROOT_CONFIG_FILE])
+    project_spec_file = ''.join([workspace_dir, '/', BASE_CONFIG_FILE])
     project_spec = get_json_from_file(project_spec_file)
     service_name = re.sub('[^A-Za-z0-9]+', '-', name).lower()
     if service_name not in project_spec[SERVICES].keys():

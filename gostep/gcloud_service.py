@@ -1,11 +1,14 @@
+import os
 import subprocess
 import traceback
+
+from time import sleep
 
 from google.cloud import storage
 from google.cloud.storage import Blob
 from googleapiclient.discovery import build
 
-from gostep.consts import FUNCTIONS_API
+from gostep.consts import FUNCTIONS_API, AUTH_FILE
 from gostep.consts import FUNCTIONS_API_VERSION
 from gostep.consts import GCLOUD_STORAGE_CLASS
 
@@ -237,9 +240,13 @@ def get_projects():
                 projects_list (object): list of project objects
     """
     try:
-        project_list = str(subprocess.check_output(
-            ['gcloud', 'projects', 'list'])).replace('b', '') \
-            .replace('\'', '').split('\\n')
+        response = str(subprocess.check_output(
+            ['gcloud', 'projects', 'list'])).replace('\'', '').split('\\n')
+        project_list = []
+        for row in response:
+            if response.index(row) == 0:
+                continue
+            project_list.append(row.split(' ')[0])
         return project_list
     except Exception:
         print(traceback.format_exc())
@@ -286,11 +293,71 @@ def set_iam_policy(resource, policy_request):
         print(traceback.format_exc())
 
 
-def create_credentials(name, display_name):
-    #process = subprocess.check_output(''.join(['gcloud iam service-accounts create ', name,
-               #  ' --display-name ', display_name]), shell=True)
-    create_acc_proc = 'Created service account [test123]'
-    accounts_list_proc = subprocess.check_output('gcloud iam service-accounts list', shell=True)
-    print(str(accounts_list_proc).replace('b', '').split())
-    return True
+def get_service_account_email(account_name):
+    """
+        Returns service account name using account name.
 
+            Parameters:
+                account_name (string): service account name
+
+            Returns:
+                service_account (list): list containing a service account email
+    """
+    try:
+        cmd = 'gcloud iam service-accounts list'
+        accounts_list_proc = subprocess.check_output(cmd, shell=True)
+        accounts_split = str(accounts_list_proc).replace('\\n', ' ').split()
+        return [i for i in accounts_split if account_name in i and '.com' in i]
+    except Exception:
+        print(traceback.format_exc())
+
+
+def create_credentials(name, project, display_name, workspace_dir):
+    """
+        Creates a credentials.json file using gcloud cli.
+
+            Parameters:
+                name (string): service account name
+                project (string): gcloud project id
+                display_name (string): service account display name
+                workspace_dir (string): workspace directory path of the project
+
+            Returns:
+                succeed (boolean): status of account creation
+    """
+    try:
+        account_email = get_service_account_email(name)
+        if len(account_email) == 0:
+            cmd = ''.join([
+                'gcloud iam service-accounts create ', name, ' --display-name "',
+                display_name, '"'])
+            subprocess.check_output(cmd, shell=True)
+            sleep(2)
+            account_email = get_service_account_email(name)
+        cmd = ''.join([
+            'gcloud iam service-accounts keys create ', workspace_dir, '/',
+             AUTH_FILE, ' --iam-account ', account_email[0]])
+        subprocess.check_output(cmd, shell=True)
+        cmd = ''.join(['gcloud projects add-iam-policy-binding ', project,
+                       ' --member serviceAccount:', account_email[0],
+                       ' --role "roles/owner"'])
+        policy_bind_proc = subprocess.check_output(cmd, shell=True)
+        return True if 'Updated' in str(policy_bind_proc) else False
+    except Exception:
+        print(traceback.format_exc())
+
+
+def default_gcloud_project():
+    try:
+        response = subprocess.check_output('gcloud config get-value project', shell=True)
+        splitted = str(response).replace('\\n', '').split("'")
+        return splitted[1] if len(splitted) > 1 else ''
+    except Exception:
+        print(traceback.format_exc())
+
+
+def set_credential_file(cred_file_path):
+    try:
+        os.environ['GOOGLE_APPLICATION_CREDENTIALS'] = cred_file_path
+    except Exception:
+        print(traceback.format_exc())

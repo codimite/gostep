@@ -12,7 +12,8 @@ ENVIRONMENTS = [
 ]
 
 TEMPLATE_REPO = 'https://github.com/codimite/gostep-templates/trunk'
-ROOT_CONFIG_FILE = 'config.json'
+BASE_CONFIG_FILE = 'config.json'
+AUTH_FILE = 'credentials.json'
 TEMPLATE_DIRECTORY = 'templates'
 BUILD_DIR = 'build'
 GOSTEP_IGNORE_FILE = '.gostepignore'
@@ -34,5 +35,5 @@ PROJECT_ID = 'project_id'
 SERVICE_ACCOUNT_EMAIL = 'service_account_email'
 
 COMMANDS = [
-    'gcloud', 'credentials', 'creds', 'projects',
+    'auth', 'init', 'inside', 'project', 'projects', 'project', 'locations', 'name', 'show', 'base'
 ]

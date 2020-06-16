@@ -1,2 +1,2 @@
 # gostep
-Google Serverless Templates Provider
+Serverless Templates Provider for Google cloud platform
