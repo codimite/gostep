@@ -3,7 +3,7 @@ import re
 from gostep.consts import BASE_CONFIG_FILE, BUILD_DIR, GOSTEP_BUCKET, SERVICES, \
     TEMPLATES, NAME, DESCRIPTION, VERSION, SOURCE_DIRECTORY, SOURCE_ARCHIVE, \
     LOCATION_NAME, KIND, LOCATION_ID, PROJECT_ID, DEFAULT_LOCATION, \
-    SERVICE_ACCOUNT_EMAIL, ENVIRONMENT, AUTH_FILE
+    SERVICE_ACCOUNT_EMAIL, ENVIRONMENT, AUTH_FILE, SERVICE_CONFIG_FILE
 from gostep.consts import TEMPLATE_DIRECTORY
 from gostep.file_manager import copy_dir
 from gostep.file_manager import get_dir
@@ -53,7 +53,7 @@ def bootstrap_base(root_dir, project_name, description, default_location,
     return project_spec
 
 
-def get_template(root_dir, kind, environment):
+def get_template(root_dir, environment):
     """
         Get template from template store, download if it does not exists.
 
@@ -66,11 +66,10 @@ def get_template(root_dir, kind, environment):
             template_dir (string): path to template
     """
     template_dir = get_dir(TEMPLATE_DIRECTORY, root_dir)
-    kind_dir = get_dir(kind, template_dir)
-    return get_dir(environment, kind_dir)
+    return get_dir(environment, template_dir)
 
 
-def bootstrap_service(root_dir, name, description, environment, version, kind):
+def bootstrap_service(root_dir, name, description, environment, version):
     """
         Gets template and builds directory for a service.
 
@@ -80,7 +79,6 @@ def bootstrap_service(root_dir, name, description, environment, version, kind):
             description (string): additional description
             environment (string): runtime
             version (string): version number
-            kind (string): serverless service type
 
         Returns:
             project_spec (object): dictionary object containing configurations
@@ -92,9 +90,9 @@ def bootstrap_service(root_dir, name, description, environment, version, kind):
         print('Service already exists. Please select a different name')
         return project_spec[SERVICES][service_name][SOURCE_DIRECTORY]
     print(''.join(['Preparing template for ', service_name]))
-    template_dir = get_template(root_dir, kind, environment)
+    template_dir = get_template(root_dir, environment)
     if environment not in project_spec.get(TEMPLATES).keys():
-        source_template = clone_template(kind, environment, template_dir)
+        source_template = clone_template(environment, template_dir)
         project_spec[TEMPLATES][environment] = source_template.replace(
             ''.join([root_dir, '/']), '')
         project_spec = rewrite_json_file(''.join(
@@ -102,6 +100,13 @@ def bootstrap_service(root_dir, name, description, environment, version, kind):
     sources_root = get_dir('src', root_dir)
     source_path = copy_dir(template_dir, ''.join([sources_root, '/',
                                                   service_name]))
+    function_spec_file = ''.join([source_path, '/', SERVICE_CONFIG_FILE])
+    function_spec = get_json_from_file(function_spec_file)
+    function_spec[NAME] = service_name
+    function_spec[DESCRIPTION] = description
+    function_spec[VERSION] = version
+    function_spec = rewrite_json_file(function_spec_file, function_spec)
+    print('Function specification for %s has been updated.'%function_spec[NAME])
     project_spec[SERVICES][service_name] = {
         NAME: service_name,
         DESCRIPTION: description,
@@ -109,8 +114,7 @@ def bootstrap_service(root_dir, name, description, environment, version, kind):
         SOURCE_ARCHIVE: '',
         LOCATION_NAME: '',
         VERSION: version,
-        ENVIRONMENT: environment,
-        KIND: kind
+        ENVIRONMENT: environment
     }
     project_spec = rewrite_json_file(project_spec_file, project_spec)
     print(''.join(['Template has been configured in ',

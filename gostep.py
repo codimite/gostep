@@ -3,7 +3,7 @@ import argparse
 import json
 import os
 
-from gostep import get_locations, set_credential_file
+from gostep import get_locations, set_credential_file, bootstrap_service
 from gostep import get_projects
 from gostep import create_credentials
 from gostep import bootstrap_base
@@ -57,13 +57,17 @@ parser.add_argument('-b', '--base', action='store_true', help='Base configuratio
 
 parser.add_argument('-s', '--show', action='store_true', help='Show what you\'ve asked for.')
 
+parser.add_argument('-S', '--service', action='store_true', help='Services related options')
+
 parser.add_argument('-d', '--inside', help='Target directory.')
 
-parser.add_argument('-e', '--explains', help='Description of something you want to create.')
+parser.add_argument('-E', '--explains', help='Description of something you want to create.')
 
 parser.add_argument('-n', '--name', help='Name identifier. Must be unique and greater than 6 chars.')
 
 parser.add_argument('-N', '--displayname', help='Display name.')
+
+parser.add_argument('-e', '--env', help='Service runtime environment.')
 
 parser.add_argument('-v', '--version', help='Version of the base.')
 
@@ -105,17 +109,17 @@ elif args.projects:
 elif args.base:
     if args.init is not None:
         project = default_gcloud_project()
-        inside = '.' if args.inside is None else args.inside
+        workspace = '.' if args.inside is None else args.inside
         if project == '' or project is None:
             print("Error: Gcloud project is mandatory.\ngcloud config set project <project-id>")
         else:
-            cred_file_path = ''.join([inside, '/', AUTH_FILE])
+            cred_file_path = ''.join([workspace, '/', AUTH_FILE])
             if not path_exists(cred_file_path):
                 create_credentials(
                     ''.join([args.init, '-service-account']),
                     project,
                     args.init if args.displayname is None else args.displayname,
-                    inside
+                    workspace
                 )
             print(''.join(['Setting credential file in ', cred_file_path]))
             set_credential_file(cred_file_path)
@@ -127,7 +131,7 @@ elif args.base:
         else:
             location = args.location
         bootstrap_base(
-            inside,
+            workspace,
             args.init,
             '<description>' if args.explains is None else args.explains,
             location,
@@ -142,6 +146,26 @@ elif args.base:
             print(get_json_from_file(base_config_file))
         else:
             print('You can initiate project base by doing,\ngostep base init <project-name> location <gcloud-location-id> inside <workspace-dir> version <version-tag> explains <description>')
+
+elif args.service:
+    if args.init is not None:
+        workspace = '.' if args.inside is None else args.inside
+        cred_file_path = ''.join([workspace, '/', AUTH_FILE])
+        cred_exists = path_exists(cred_file_path)
+        if not cred_exists or args.env is None:
+            if not cred_exists:
+                print(''.join([workspace, ' is not a gostep workspace. You can create a workspace by,\ngostep base init <project-name> location <gcloud-location-id> inside <workspace-dir> version <version-tag> explains <description']))
+            if args.env is None:
+                print('-e --env Runtime environment is required.')
+        else:
+            set_credential_file(cred_file_path)
+            bootstrap_service(
+                workspace,
+                args.init,
+                '<description>' if args.explains is None else args.explains,
+                args.env,
+                '0.1.0' if args.version is None else args.version
+            )
 
 else:
     print('Serverless templates provider for Google cloud platform')

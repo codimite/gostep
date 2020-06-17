@@ -5,7 +5,7 @@ from svn import remote
 from gostep.consts import TEMPLATE_REPO
 
 
-def clone_template(kind, environment, target_dir):
+def clone_template(environment, target_dir):
     """
         Observe serverless template and returns the directory path.
 
@@ -18,9 +18,10 @@ def clone_template(kind, environment, target_dir):
                 template_dir (str): path of downloaded template
     """
     try:
-        template = ''.join([TEMPLATE_REPO, '/', kind, '/', environment])
-        print("Getting %s template for %s..." % (kind, environment))
+        template = ''.join([TEMPLATE_REPO, '/function/', environment])
+        print("Getting %s template..." % environment)
         svn_client = remote.RemoteClient(template)
+        print(target_dir)
         svn_client.checkout(target_dir)
         print("Successfully fetched template")
         return target_dir
