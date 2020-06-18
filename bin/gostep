@@ -11,7 +11,7 @@ from gostep import bootstrap_base
 from gostep import deploy
 from gostep import deploy_all
 
-from gostep.consts import COMMANDS, AUTH_FILE, BASE_CONFIG_FILE, SERVICES, LOCATION_ID
+from gostep.consts import COMMANDS, AUTH_FILE, BASE_CONFIG_FILE, SERVICES, LOCATION_ID, DEFAULT_LOCATION
 from gostep import path_exists
 from gostep import get_json_from_file
 from gostep import default_gcloud_project
@@ -208,7 +208,7 @@ elif args.service:
                 base_config_file):
             set_credential_file(auth_file_path)
             base_config = get_json_from_file(base_config_file)
-            location = get_location(args.location, base_config[LOCATION_ID])
+            location = get_location(args.location, base_config[DEFAULT_LOCATION])
             bootstrap_service(
                 workspace,
                 args.init,
@@ -231,7 +231,7 @@ elif args.deploy is not None:
             if args.deploy in base_config[SERVICES].keys():
                 print(''.join(["Deploying service ", args.deploy, '...']))
                 location = get_location(
-                    args.location, base_config[LOCATION_ID])
+                    args.location, base_config[DEFAULT_LOCATION])
                 deploy(args.deploy, location, workspace)
             else:
                 print('Invalid service name. Nothing to deploy.')

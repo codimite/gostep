@@ -127,7 +127,7 @@ def bootstrap_service(
         LOCATION_ID: location,
         VERSION: version,
         ENVIRONMENT: environment,
-        CHECKSUM: get_checksum(source_path)
+        CHECKSUM: ''
     }
     project_spec = rewrite_json_file(project_spec_file, project_spec)
     print(''.join(['Template has been configured in ',
