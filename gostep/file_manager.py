@@ -5,6 +5,7 @@ import shutil
 import traceback
 from pathlib import Path
 from zipfile import ZipFile
+from checksumdir import dirhash
 
 import yaml
 
@@ -232,5 +233,21 @@ def rewrite_json_file(json_file, json_dict):
         with open(json_file, 'w') as json_file_object:
             json.dump(json_dict, json_file_object, indent=4)
         return get_json_from_file(json_file)
+    except Exception:
+        print(traceback.format_exc())
+
+
+def get_checksum(dir_path):
+    """
+        Reads and returns a md5 checksum of a directory.
+
+            Parameters:
+                dir_path (string): path to directory
+
+            Returns:
+                checksum (string): checksum value of string
+    """
+    try:
+        return dirhash(dir_path)
     except Exception:
         print(traceback.format_exc())

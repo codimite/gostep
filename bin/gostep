@@ -1,0 +1,242 @@
+import sys
+import argparse
+import json
+
+from gostep import get_locations
+from gostep import set_credential_file
+from gostep import bootstrap_service
+from gostep import get_projects
+from gostep import create_credentials
+from gostep import bootstrap_base
+from gostep import deploy
+from gostep import deploy_all
+
+from gostep.consts import COMMANDS, AUTH_FILE, BASE_CONFIG_FILE, SERVICES, LOCATION_ID
+from gostep import path_exists
+from gostep import get_json_from_file
+from gostep import default_gcloud_project
+
+
+def projects():
+    print("Fetching projects in Google cloud platform...")
+    for element in get_projects():
+        print(element)
+
+
+def get_location(location_id, default_location):
+    if location_id is None and default_location is not None:
+        print('Default gcloud location id has been set.')
+        return default_location
+    if location_id is not None and default_location is None and location_id not in get_locations(
+            default_gcloud_project()):
+        print('Warning: Location id is not in available locations. A default location id will be set')
+        return locations[0]['locationId']
+    else:
+        return location_id
+
+
+def locations(project_id):
+    print('Fetching locations list for glcoud project %s...' % project_id)
+    for element in get_locations(project_id):
+        print(element)
+
+
+def credentials(cred_file):
+    return get_json_from_file(cred_file)
+
+
+def base_valid(base_file):
+    if path_exists(base_file):
+        return True
+    else:
+        print(''.join([workspace, ' is not a gostep base. You can initiate project base by doing,\n'
+                                  'gostep base init <project-name> location <gcloud-location-id> inside'
+                                  ' <workspace-dir> version <version-tag> explains <description>']))
+        return False
+
+
+def cred_valid(cred_file):
+    if path_exists(cred_file):
+        return True
+    else:
+        print(''.join('No credential file found. You can initiate a credential file by,\n'
+                      'gostep auth init <service-account-name> as <account-display-name> inside <workspace-dir>'))
+        return False
+
+
+parser = argparse.ArgumentParser()
+modified_args = []
+
+if len(sys.argv) > 0:
+    for arg_index in range(1, len(sys.argv)):
+        if sys.argv[arg_index] in COMMANDS:
+            modified_args.append(''.join(['--', sys.argv[arg_index]]))
+        else:
+            modified_args.append(sys.argv[arg_index])
+
+
+parser.add_argument(
+    '-P',
+    '--projects',
+    action='store_true',
+    help='GCloud projects list')
+
+parser.add_argument(
+    '-p',
+    '--project',
+    help='Gostep project related operations.')
+
+parser.add_argument(
+    '-l',
+    '--locations',
+    action='store_true',
+    help='GCloud locations list')
+
+parser.add_argument('-L', '--location', help='GCloud location Id')
+
+parser.add_argument('-a', '--auth', action='store_true',
+                    help='Credentials related operations')
+
+parser.add_argument(
+    '-i',
+    '--init',
+    help='Initialize something new. Value must be unique and greater than 6 chars.')
+
+parser.add_argument('-b', '--base', action='store_true',
+                    help='Base configurations of the services cluster.')
+
+parser.add_argument('-s', '--show', action='store_true',
+                    help='Show what you\'ve asked for.')
+
+parser.add_argument(
+    '-S',
+    '--service',
+    action='store_true',
+    help='Services related options')
+
+parser.add_argument('-d', '--inside', help='Target directory.')
+
+parser.add_argument(
+    '-E',
+    '--explains',
+    help='Description of something you want to create.')
+
+parser.add_argument(
+    '-n',
+    '--name',
+    help='Name identifier. Must be unique and greater than 6 chars.')
+
+parser.add_argument('-N', '--displayname', help='Display name.')
+
+parser.add_argument('-D', '--deploy', help='Deployment related options.')
+
+parser.add_argument('-e', '--env', help='Service runtime environment.')
+
+parser.add_argument('-v', '--version', help='Version of the base.')
+
+parser.add_argument('-g', '--gcloud', action='store_true', help='gcloud SDK based operations.')
+
+args = parser.parse_args(modified_args)
+
+
+workspace = '.' if args.inside is None else args.inside
+auth_file_path = ''.join([workspace, '/', AUTH_FILE])
+base_config_file = ''.join([workspace, '/', BASE_CONFIG_FILE])
+
+
+if args.auth:
+    if args.init is not None:
+        print('Creating service account authentication file...')
+        project = default_gcloud_project()
+        if project == '' or project is None:
+            print("Gcloud project is mandatory.")
+        else:
+            create_credentials(
+                args.init,
+                project,
+                args.init if args.displayname is None else args.displayname,
+                workspace
+            )
+    elif args.init is None and args.show:
+        if cred_valid(auth_file_path):
+            print(json.dumps(credentials(auth_file_path), indent=4))
+    elif args.init is None and not args.show and args.inside is None:
+        print('Usage: gostep auth init <service-account-name> as <account-display-name> inside <workspace-dir>')
+    elif not args.init and args.inside is not None:
+        print(''.join(['Setting credential file in ', auth_file_path]))
+        set_credential_file(auth_file_path)
+
+elif args.gcloud:
+    if args.projects:
+        projects()
+    elif args.locations:
+        if cred_valid(auth_file_path):
+            locations(default_gcloud_project())
+    else:
+        print('Usage: gostep gcloud projects')
+
+elif args.base:
+    if args.init is not None:
+        project = default_gcloud_project()
+        if project == '' or project is None:
+            print(
+                "Gcloud project is mandatory.\ngcloud config set project <project-id>")
+        else:
+            if not path_exists(auth_file_path):
+                create_credentials(
+                    ''.join([args.init, '-service-account']),
+                    project,
+                    args.init if args.displayname is None else args.displayname,
+                    workspace
+                )
+            print(''.join(['Setting credential file in ', auth_file_path]))
+            set_credential_file(auth_file_path)
+        location = get_location(args.location, None)
+        bootstrap_base(
+            workspace,
+            args.init,
+            '<description>' if args.explains is None else args.explains,
+            location,
+            '0.1.0' if args.version is None else args.version
+        )
+    else:
+        base_valid(base_config_file)
+
+elif args.service:
+    if args.init is not None:
+        if cred_valid(auth_file_path) and args.env and base_valid(
+                base_config_file):
+            set_credential_file(auth_file_path)
+            base_config = get_json_from_file(base_config_file)
+            location = get_location(args.location, base_config[LOCATION_ID])
+            bootstrap_service(
+                workspace,
+                args.init,
+                '<description>' if args.explains is None else args.explains,
+                args.env,
+                location,
+                '0.1.0' if args.version is None else args.version
+            )
+        elif not args.env:
+            print('-e --env Runtime environment is required.')
+
+elif args.deploy is not None:
+    if cred_valid(auth_file_path) and base_valid(base_config_file):
+        set_credential_file(auth_file_path)
+        base_config = get_json_from_file(base_config_file)
+        if args.deploy == 'diff':
+            print('Deploying changes...')
+            deploy_all(workspace)
+        else:
+            if args.deploy in base_config[SERVICES].keys():
+                print(''.join(["Deploying service ", args.deploy, '...']))
+                location = get_location(
+                    args.location, base_config[LOCATION_ID])
+                deploy(args.deploy, location, workspace)
+            else:
+                print('Invalid service name. Nothing to deploy.')
+
+else:
+    print('Serverless templates provider for Google cloud platform')
+    print('Version: 0.1.0')
+    print('-h, --help for how to use')

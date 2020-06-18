@@ -2,10 +2,10 @@ import re
 
 from gostep.consts import BASE_CONFIG_FILE, BUILD_DIR, GOSTEP_BUCKET, SERVICES, \
     TEMPLATES, NAME, DESCRIPTION, VERSION, SOURCE_DIRECTORY, SOURCE_ARCHIVE, \
-    LOCATION_NAME, KIND, LOCATION_ID, PROJECT_ID, DEFAULT_LOCATION, \
-    SERVICE_ACCOUNT_EMAIL, ENVIRONMENT, AUTH_FILE, SERVICE_CONFIG_FILE
+    LOCATION_NAME, LOCATION_ID, PROJECT_ID, DEFAULT_LOCATION, \
+    SERVICE_ACCOUNT_EMAIL, ENVIRONMENT, AUTH_FILE, SERVICE_CONFIG_FILE, CHECKSUM
 from gostep.consts import TEMPLATE_DIRECTORY
-from gostep.file_manager import copy_dir
+from gostep.file_manager import copy_dir, get_checksum
 from gostep.file_manager import get_dir
 from gostep.file_manager import get_json_from_file, create_compressed_file, \
     rewrite_json_file
@@ -45,8 +45,8 @@ def bootstrap_base(root_dir, project_name, description, default_location,
         TEMPLATES: {},
         SERVICES: {}
     }
-    project_spec = rewrite_json_file(''.join([root_dir, '/', BASE_CONFIG_FILE]),
-                                     project_info)
+    project_spec = rewrite_json_file(
+        ''.join([root_dir, '/', BASE_CONFIG_FILE]), project_info)
     get_dir(TEMPLATE_DIRECTORY, root_dir)
     print('Project base %s has been successfully generated.'
           % project_spec[NAME])
@@ -59,7 +59,6 @@ def get_template(root_dir, environment):
 
         Parameters:
             root_dir (string): workspace directory
-            kind (string): serverless service kind
             environment (string): runtime
 
         Returns:
@@ -69,7 +68,13 @@ def get_template(root_dir, environment):
     return get_dir(environment, template_dir)
 
 
-def bootstrap_service(root_dir, name, description, environment, version):
+def bootstrap_service(
+        root_dir,
+        name,
+        description,
+        environment,
+        location,
+        version):
     """
         Gets template and builds directory for a service.
 
@@ -78,6 +83,7 @@ def bootstrap_service(root_dir, name, description, environment, version):
             name (string): name of the service
             description (string): additional description
             environment (string): runtime
+            location (string): gcloud location id
             version (string): version number
 
         Returns:
@@ -95,26 +101,33 @@ def bootstrap_service(root_dir, name, description, environment, version):
         source_template = clone_template(environment, template_dir)
         project_spec[TEMPLATES][environment] = source_template.replace(
             ''.join([root_dir, '/']), '')
-        project_spec = rewrite_json_file(''.join(
-            [root_dir, '/', BASE_CONFIG_FILE]), project_spec)
+        project_spec = rewrite_json_file(
+            ''.join([root_dir, '/', BASE_CONFIG_FILE]), project_spec)
     sources_root = get_dir('src', root_dir)
-    source_path = copy_dir(template_dir, ''.join([sources_root, '/',
-                                                  service_name]))
+    source_path = copy_dir(template_dir, ''.join(
+        [sources_root, '/', service_name]))
+    location_name = ''.join(
+        ['projects/', project_spec[PROJECT_ID], '/locations/', location])
+    function_name = ''.join([location_name, '/functions/', service_name])
     function_spec_file = ''.join([source_path, '/', SERVICE_CONFIG_FILE])
     function_spec = get_json_from_file(function_spec_file)
-    function_spec[NAME] = service_name
+    function_spec[NAME] = function_name
     function_spec[DESCRIPTION] = description
     function_spec[VERSION] = version
     function_spec = rewrite_json_file(function_spec_file, function_spec)
-    print('Function specification for %s has been updated.'%function_spec[NAME])
+    print(
+        'Function specification for %s has been updated.' %
+        function_spec[NAME])
     project_spec[SERVICES][service_name] = {
         NAME: service_name,
         DESCRIPTION: description,
         SOURCE_DIRECTORY: source_path.replace(''.join([root_dir, '/']), ''),
         SOURCE_ARCHIVE: '',
-        LOCATION_NAME: '',
+        LOCATION_NAME: location_name,
+        LOCATION_ID: location,
         VERSION: version,
-        ENVIRONMENT: environment
+        ENVIRONMENT: environment,
+        CHECKSUM: get_checksum(source_path)
     }
     project_spec = rewrite_json_file(project_spec_file, project_spec)
     print(''.join(['Template has been configured in ',
@@ -134,7 +147,7 @@ def cloud_function_exists(name, location_path):
             is_exists (boolean): true, if function already has been deployed
     """
     cloud_functions = get_cloud_functions(location_path)
-    return any(name in function[NAME] for function in cloud_functions)
+    return any(name == function[NAME] for function in cloud_functions)
 
 
 def bucket_exists(name):
@@ -240,25 +253,27 @@ def deploy(name, location, workspace_dir):
     project_spec = get_json_from_file(project_spec_file)
     service_name = re.sub('[^A-Za-z0-9]+', '-', name).lower()
     if service_name not in project_spec[SERVICES].keys():
-        print('Service does not exists')
+        print('Service does not exists.')
         return False
     service_info = project_spec[SERVICES][service_name]
     service_dir = ''.join([workspace_dir, '/', service_info[SOURCE_DIRECTORY]])
     location = location if location is not None else get_locations(
-        project_spec[PROJECT_ID])[0]['locationId'] if \
-        project_spec[DEFAULT_LOCATION] == '' else project_spec[
+        project_spec[PROJECT_ID])[0]['locationId'] if project_spec[DEFAULT_LOCATION] == '' else project_spec[
         DEFAULT_LOCATION]
-    location_name = ''.join(['projects/', project_spec[PROJECT_ID],
-                             '/locations/', location])
+    location_name = ''.join(
+        ['projects/', project_spec[PROJECT_ID], '/locations/', location])
+    function_name = ''.join([location_name, '/functions/', service_name])
     function_spec_file = ''.join([service_dir, '/', 'function.json'])
     function_spec = get_json_from_file(function_spec_file)
-    source_archive_url = upload_source_to_bucket(workspace_dir, service_name,
-                                                 service_dir, location)
+    source_archive_url = upload_source_to_bucket(
+        workspace_dir, service_name, service_dir, location)
+    function_spec[NAME] = function_name
     function_spec['sourceArchiveUrl'] = source_archive_url
-    function_spec['serviceAccountEmail'] = project_spec[SERVICE_ACCOUNT_EMAIL]
-    if cloud_function_exists(service_name, location_name):
-        result = update_cloud_function(function_spec[NAME],
-                                       'sourceArchiveUrl', function_spec)
+    if cloud_function_exists(function_name, location_name):
+        result = update_cloud_function(
+            function_spec[NAME],
+            'sourceArchiveUrl',
+            function_spec)
         function_spec[NAME] = result['metadata']['target']
     else:
         result = deploy_cloud_function(location_name, function_spec)
@@ -268,7 +283,24 @@ def deploy(name, location, workspace_dir):
     rewrite_json_file(function_spec_file, function_spec)
     project_spec[SERVICES][service_name][LOCATION_NAME] = location_name
     project_spec[SERVICES][service_name][LOCATION_ID] = location
-    project_spec = rewrite_json_file(project_spec_file, project_spec)
-    service = get_cloud_function(project_spec['function'][service_name])
-    print(''.join([service_name, ' has been deployed successfully.']))
+    rewrite_json_file(project_spec_file, project_spec)
+    service = get_cloud_function(function_spec[NAME])
+    print(''.join(['New deployment has been triggered for ', service_name]))
     return service
+
+
+def deploy_all(workspace_dir):
+    project_spec_file = ''.join([workspace_dir, '/', BASE_CONFIG_FILE])
+    project_spec = get_json_from_file(project_spec_file)
+    for service_key in project_spec[SERVICES].keys():
+        service = project_spec[SERVICES][service_key]
+        service_dir = ''.join([workspace_dir, '/', service[SOURCE_DIRECTORY]])
+        service_checksum = get_checksum(service_dir)
+        if service_checksum != service[CHECKSUM]:
+            print("Deploying service %s..." % service[NAME])
+            deploy(service[NAME], service[LOCATION_ID], workspace_dir)
+            project_spec[SERVICES][service_key][CHECKSUM] = service_checksum
+            rewrite_json_file(project_spec_file, project_spec)
+            print(
+                ''.join([service[NAME], ' service checksum updated ', service_checksum, '.']))
+    print('All up to date.')

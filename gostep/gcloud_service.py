@@ -348,15 +348,24 @@ def create_credentials(name, project, display_name, workspace_dir):
 
 
 def default_gcloud_project():
+    """
+        Call gcloud cli and returns default default selected project id.
+
+            Returns:
+                project_id (string): active gcloud project id
+    """
     try:
         response = subprocess.check_output('gcloud config get-value project', shell=True)
-        splitted = str(response).replace('\\n', '').split("'")
-        return splitted[1] if len(splitted) > 1 else ''
+        splits = str(response).replace('\\n', '').split("'")
+        return splits[1] if len(splits) > 1 else ''
     except Exception:
         print(traceback.format_exc())
 
 
 def set_credential_file(cred_file_path):
+    """
+        Set system env variable for GOOGLE_APPLICATION_CREDENTIALS.
+    """
     try:
         os.environ['GOOGLE_APPLICATION_CREDENTIALS'] = cred_file_path
     except Exception:

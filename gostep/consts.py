@@ -30,7 +30,22 @@ DEFAULT_LOCATION = 'default_location'
 KIND = 'kind'
 PROJECT_ID = 'project_id'
 SERVICE_ACCOUNT_EMAIL = 'service_account_email'
+CHECKSUM = 'checksum'
 
 COMMANDS = [
-    'auth', 'init', 'inside', 'project', 'projects', 'project', 'locations', 'name', 'show', 'base', 'location', 'env', 'service'
-]
+    'auth',
+    'init',
+    'inside',
+    'project',
+    'projects',
+    'project',
+    'locations',
+    'name',
+    'show',
+    'base',
+    'location',
+    'env',
+    'service',
+    'explains',
+    'deploy',
+    'gcloud']
