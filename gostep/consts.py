@@ -4,7 +4,9 @@ FUNCTIONS_API_VERSION = 'v1'
 SERVICE_ENTRY_POINT = 'main'
 ENVIRONMENTS = [
     'python',
-    'nodejs'
+    'nodejs',
+    'java/plain',
+    'java/spring'
 ]
 
 TEMPLATE_REPO = 'https://github.com/codimite/gostep-templates/trunk'
@@ -19,6 +21,8 @@ GOSTEP_BUCKET = 'gostep'
 SERVICES = 'services'
 TEMPLATES = 'templates'
 NAME = 'name'
+RUNTIME = 'runtime'
+JAVA_RUNTIME = 'java'
 DESCRIPTION = 'description'
 ENVIRONMENT = 'env'
 VERSION = 'version'
@@ -31,6 +35,15 @@ KIND = 'kind'
 PROJECT_ID = 'project_id'
 SERVICE_ACCOUNT_EMAIL = 'service_account_email'
 CHECKSUM = 'checksum'
+TRIGGER = 'trigger'
+HTTP = 'http'
+HTTPS_TRIGGER_KEY = 'httpsTrigger'
+EVENT_TRIGGER_KEY = 'eventTrigger'
+EVENT_TYPE = 'eventType'
+EVENT_TYPE_PUBSUB = 'cloud.pubsub'
+EVENT_TYPE_STORAGE = 'cloud.storage'
+RESOURCE = 'resource'
+TRIGGERS = ['http', 'pubsub', 'storage']
 
 COMMANDS = [
     'auth',
@@ -48,4 +61,9 @@ COMMANDS = [
     'service',
     'explains',
     'deploy',
-    'gcloud']
+    'gcloud',
+    'version',
+    'trigger',
+    'config',
+    'invoker'
+]

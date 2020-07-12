@@ -48,7 +48,7 @@ def get_dir(dir_name, root_path=os.getcwd()):
     try:
         dir_path = ''.join([root_path, '/', dir_name])
         if not os.path.exists(dir_path):
-            os.mkdir(dir_path)
+            os.makedirs(dir_path)
             print('Created directory %s' % dir_path)
         return dir_path
     except Exception:
@@ -87,14 +87,15 @@ def copy_dir(source, destination):
         print(traceback.format_exc())
 
 
-def create_compressed_file(name, source_dir, target_dir):
+def create_compressed_file(name, config_dir, sources_dir, target_dir):
     """
         Creates a compressed zip file removing given list of files to be
         ignored.
 
             Parameters:
                 name (string): name of the compressed file
-                source_dir (string): source directory path
+                config_dir (string): path where gostep config files exists
+                sources_dir (string): source directory path
                 target_dir (string): target directory path
 
             Returns:
@@ -103,8 +104,8 @@ def create_compressed_file(name, source_dir, target_dir):
     try:
         target_file_path = ''.join([target_dir, '/', name, '.zip'])
         compressed_file = ZipFile(target_file_path, "w")
-        ignore_list = get_yaml_dict(GOSTEP_IGNORE_FILE, source_dir).split(' ')
-        for dir_name, sub_dirs, files in os.walk(source_dir):
+        ignore_list = get_yaml_dict(GOSTEP_IGNORE_FILE, config_dir).split(' ')
+        for dir_name, sub_dirs, files in os.walk(sources_dir):
             len_dir_path = len(dir_name)
             for filename in files:
                 file_path = os.path.join(dir_name, filename)

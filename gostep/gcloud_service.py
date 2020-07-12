@@ -241,7 +241,7 @@ def get_projects():
     """
     try:
         response = str(subprocess.check_output(
-            ['gcloud', 'projects', 'list'])).replace('\'', '').split('\\n')
+            ['gcloud', 'projects', 'list']), shell=True).replace('\'', '').split('\\n')
         project_list = []
         for row in response:
             if response.index(row) == 0:
@@ -365,6 +365,9 @@ def default_gcloud_project():
 def set_credential_file(cred_file_path):
     """
         Set system env variable for GOOGLE_APPLICATION_CREDENTIALS.
+
+            Parameters:
+                cred_file_path (string): credentials file path
     """
     try:
         os.environ['GOOGLE_APPLICATION_CREDENTIALS'] = cred_file_path

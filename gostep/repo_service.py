@@ -21,7 +21,6 @@ def clone_template(environment, target_dir):
         template = ''.join([TEMPLATE_REPO, '/function/', environment])
         print("Getting %s template..." % environment)
         svn_client = remote.RemoteClient(template)
-        print(target_dir)
         svn_client.checkout(target_dir)
         print("Successfully fetched template")
         return target_dir
