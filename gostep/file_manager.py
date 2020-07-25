@@ -2,10 +2,10 @@ import fileinput
 import json
 import os
 import shutil
+import subprocess
 import traceback
 from pathlib import Path
 from zipfile import ZipFile
-from checksumdir import dirhash
 
 import yaml
 
@@ -249,6 +249,9 @@ def get_checksum(dir_path):
                 checksum (string): checksum value of string
     """
     try:
-        return dirhash(dir_path)
+        print(dir_path)
+        cmd = ''.join(['tar c "', dir_path, '" | md5sum'])
+        result = subprocess.check_output(cmd, shell=True)
+        return result.decode().split()[0]
     except Exception:
         print(traceback.format_exc())

@@ -1,17 +1,18 @@
-from os.path import join
 import re
+from os.path import join
 
 from gostep.builders import build_java_project
 from gostep.consts import BASE_CONFIG_FILE, BUILD_DIR, GOSTEP_BUCKET, SERVICES, \
     TEMPLATES, NAME, DESCRIPTION, VERSION, SOURCE_DIRECTORY, SOURCE_ARCHIVE, \
     LOCATION_NAME, LOCATION_ID, PROJECT_ID, DEFAULT_LOCATION, \
-    SERVICE_ACCOUNT_EMAIL, ENVIRONMENT, AUTH_FILE, SERVICE_CONFIG_FILE, CHECKSUM, TRIGGER, RUNTIME, JAVA_RUNTIME
+    ENVIRONMENT, AUTH_FILE, SERVICE_CONFIG_FILE, CHECKSUM, TRIGGER, RUNTIME, JAVA_RUNTIME, \
+    ALLOW_ALL
 from gostep.consts import TEMPLATE_DIRECTORY
 from gostep.file_manager import copy_dir, get_checksum
 from gostep.file_manager import get_dir
 from gostep.file_manager import get_json_from_file, create_compressed_file, \
     rewrite_json_file
-from gostep.gcloud_service import get_cloud_functions, get_buckets, \
+from gostep.gcloud_ops import get_cloud_functions, get_buckets, \
     create_bucket, get_bucket, update_cloud_function, deploy_cloud_function, \
     upload_file_to_bucket, get_locations, set_iam_policy, get_iam_policy, \
     get_cloud_function
@@ -34,13 +35,12 @@ def bootstrap_base(workspace_dir, project_name, description, default_location,
                 project_spec (dictionary): generated project specification
     """
     print('Creating project specification...')
-    credentials = get_json_from_file(''.join([workspace_dir, '/', AUTH_FILE]))
+    credentials = get_json_from_file(''.join([workspace_dir, '/', AUTH_FILE]).replace('\\', ''))
     default_location = default_location if default_location is not None else \
         get_locations(credentials[PROJECT_ID])[0]['locationId']
     project_info = {
         NAME: project_name,
         PROJECT_ID: credentials[PROJECT_ID],
-        SERVICE_ACCOUNT_EMAIL: ['client_email'],
         DESCRIPTION: description,
         DEFAULT_LOCATION: default_location,
         VERSION: version,
@@ -94,7 +94,7 @@ def get_template_from_store(environment, trigger, workspace_dir, project_spec):
     return join(workspace_dir, project_spec[TEMPLATES][template_id])
 
 
-def bootstrap_service(workspace_dir, name, description, environment, location, version, trigger):
+def bootstrap_service(workspace_dir, name, description, environment, location, version, trigger, allow_all=False):
     """
         Gets template and builds directory for a service.
 
@@ -105,7 +105,8 @@ def bootstrap_service(workspace_dir, name, description, environment, location, v
             environment (string): runtime
             location (string): gcloud location id
             version (string): version number,
-            trigger (string): function invocation trigger
+            trigger (string): function invocation trigger,
+            allow_all (boolen): allow invoke access to public
 
         Returns:
             service_spec (object): dictionary object containing service info
@@ -127,7 +128,7 @@ def bootstrap_service(workspace_dir, name, description, environment, location, v
     function_spec[NAME] = function_name
     function_spec[DESCRIPTION] = description
     function_spec = rewrite_json_file(function_spec_file, function_spec)
-    print('Function specification for %s has been updated.' %function_spec[NAME])
+    print('Function specification for %s has been updated.' % function_spec[NAME])
     project_spec = get_json_from_file(project_spec_file)
     project_spec[SERVICES][service_name] = {
         NAME: service_name,
@@ -139,7 +140,8 @@ def bootstrap_service(workspace_dir, name, description, environment, location, v
         VERSION: version,
         ENVIRONMENT: environment,
         TRIGGER: trigger,
-        CHECKSUM: ''
+        CHECKSUM: '',
+        ALLOW_ALL: allow_all
     }
     project_spec = rewrite_json_file(project_spec_file, project_spec)
     print(''.join(['Function has been configured in ', project_spec[SERVICES][service_name][SOURCE_DIRECTORY]]))
@@ -252,7 +254,7 @@ def upload_source_to_bucket(workspace_dir, name, service_dir, location, runtime)
     return upload_file_to_bucket(storage_bucket.name, name, source_archive)
 
 
-def deploy(name, location, workspace_dir, no_auth=False):
+def deploy(name, location, workspace_dir):
     """
         Deploy a cloud function service, redeploy if already has been deployed.
 
@@ -260,7 +262,6 @@ def deploy(name, location, workspace_dir, no_auth=False):
             name (string): service name
             location (string): region id
             workspace_dir (string): workspace directory path
-            no_auth (boolean): invoker privileges
 
         Returns:
             function (object): cloud function object
@@ -274,12 +275,14 @@ def deploy(name, location, workspace_dir, no_auth=False):
     service_info = project_spec[SERVICES][service_name]
     service_dir = ''.join([workspace_dir, '/', service_info[SOURCE_DIRECTORY]])
     location = location if location is not None else get_locations(
-        project_spec[PROJECT_ID])[0]['locationId'] if project_spec[DEFAULT_LOCATION] == '' else project_spec[DEFAULT_LOCATION]
+        project_spec[PROJECT_ID])[0]['locationId'] if project_spec[DEFAULT_LOCATION] == '' else project_spec[
+        DEFAULT_LOCATION]
     location_name = ''.join(['projects/', project_spec[PROJECT_ID], '/locations/', location])
     function_name = ''.join([location_name, '/functions/', service_name])
     function_spec_file = ''.join([service_dir, '/', 'function.json'])
     function_spec = get_json_from_file(function_spec_file)
-    source_archive_url = upload_source_to_bucket(workspace_dir, service_name, service_dir, location, function_spec[RUNTIME])
+    source_archive_url = upload_source_to_bucket(workspace_dir, service_name, service_dir, location,
+                                                 function_spec[RUNTIME])
     function_spec[NAME] = function_name
     function_spec['sourceArchiveUrl'] = source_archive_url
     if cloud_function_exists(function_name, location_name):
@@ -288,7 +291,7 @@ def deploy(name, location, workspace_dir, no_auth=False):
     else:
         result = deploy_cloud_function(location_name, function_spec)
         function_spec[NAME] = result['metadata']['target']
-    if no_auth and not invoke_role_exists(function_spec[NAME]):
+    if project_spec[SERVICES][service_name][ALLOW_ALL] and not invoke_role_exists(function_spec[NAME]):
         authorize_public_invoking(function_spec[NAME])
     rewrite_json_file(function_spec_file, function_spec)
     project_spec[SERVICES][service_name][LOCATION_NAME] = location_name
@@ -309,6 +312,7 @@ def deploy_all(workspace_dir):
         if service_checksum != service[CHECKSUM]:
             print("Deploying service %s..." % service[NAME])
             deploy(service[NAME], service[LOCATION_ID], workspace_dir)
+            service_checksum = get_checksum(service_dir)
             project_spec[SERVICES][service_key][CHECKSUM] = service_checksum
             project_spec = rewrite_json_file(project_spec_file, project_spec)
             print(''.join([service[NAME], ' service checksum updated ', service_checksum, '.']))

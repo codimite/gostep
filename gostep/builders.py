@@ -1,6 +1,6 @@
-from os import path
 import subprocess
 import traceback
+from os import path
 
 
 def build_java_project(service_workspace):

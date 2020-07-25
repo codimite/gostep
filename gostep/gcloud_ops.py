@@ -1,7 +1,6 @@
 import os
 import subprocess
 import traceback
-
 from time import sleep
 
 from google.cloud import storage
@@ -59,9 +58,7 @@ def get_locations(project):
         service_client = get_service_client(
             FUNCTIONS_API, FUNCTIONS_API_VERSION)
         project_name = ''.join(['projects', '/', project])
-        return service_client.projects().locations().list(
-            name=project_name
-        ).execute()['locations']
+        return service_client.projects().locations().list(name=project_name).execute()['locations']
     except Exception:
         print(traceback.format_exc())
 
@@ -240,8 +237,7 @@ def get_projects():
                 projects_list (object): list of project objects
     """
     try:
-        response = str(subprocess.check_output(
-            ['gcloud', 'projects', 'list']), shell=True).replace('\'', '').split('\\n')
+        response = str(subprocess.check_output('gcloud projects list', shell=True)).replace('\'', '').split('\\n')
         project_list = []
         for row in response:
             if response.index(row) == 0:
@@ -336,7 +332,7 @@ def create_credentials(name, project, display_name, workspace_dir):
             account_email = get_service_account_email(name)
         cmd = ''.join([
             'gcloud iam service-accounts keys create ', workspace_dir, '/',
-             AUTH_FILE, ' --iam-account ', account_email[0]])
+            AUTH_FILE, ' --iam-account ', account_email[0]])
         subprocess.check_output(cmd, shell=True)
         cmd = ''.join(['gcloud projects add-iam-policy-binding ', project,
                        ' --member serviceAccount:', account_email[0],

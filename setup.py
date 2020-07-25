@@ -1,6 +1,6 @@
 from os import path
-from setuptools import setup
 
+from setuptools import setup
 
 this_directory = path.abspath(path.dirname(__file__))
 with open(path.join(this_directory, 'README.md'), encoding='utf-8') as f:
@@ -13,7 +13,7 @@ setup(
     scripts=[
         './bin/gostep'
     ],
-    version='0.1.0-beta3',
+    version='0.1.0-beta4',
     description='Serverless Templates Provider for Google Cloud platform',
     url='https://github.com/codimite/gostep',
     author='Lahiru Pathirage',
@@ -28,7 +28,6 @@ setup(
         'google-auth-httplib2',
         'google-auth-oauthlib',
         'oauth2client',
-        'pyyaml',
-        'checksumdir'
+        'pyyaml'
     ]
 )

@@ -1,22 +1,21 @@
-import sys
-from os import path
 import argparse
 import json
+import sys
+from os import path
 
-from gostep import get_locations
-from gostep import set_credential_file
-from gostep import bootstrap_service
-from gostep import get_projects
-from gostep import create_credentials
 from gostep import bootstrap_base
+from gostep import bootstrap_service
+from gostep import create_credentials
+from gostep import default_gcloud_project
 from gostep import deploy
 from gostep import deploy_all
-
-from gostep.consts import COMMANDS, AUTH_FILE, BASE_CONFIG_FILE, SERVICES, LOCATION_ID, DEFAULT_LOCATION, TRIGGERS, \
-    ENVIRONMENTS, HTTP, SERVICE_CONFIG_FILE, HTTPS_TRIGGER_KEY, EVENT_TYPE, RESOURCE
-from gostep import path_exists
 from gostep import get_json_from_file
-from gostep import default_gcloud_project
+from gostep import get_locations
+from gostep import get_projects
+from gostep import path_exists
+from gostep import set_credential_file
+from gostep.cmd_validator import validated
+from gostep.consts import COMMANDS, AUTH_FILE, BASE_CONFIG_FILE, SERVICES, DEFAULT_LOCATION, HTTP
 
 
 def projects():
@@ -59,11 +58,14 @@ def base_valid(base_file):
                                   ' <workspace-dir> version <version-tag> explains <description>']))
         return False
 
+
 def service_valid(service_cfg_file):
     if path_exists(service_cfg_file):
         return True
     else:
-        print(''.join(['Invalid service config ', service_cfg_file, '. You can initiate a cloud function service by,\n gostep service init <service-name> env <runtime> trigger <invoked-by-type> inside <workspace_dir>']))
+        print(''.join(['Invalid service config ', service_cfg_file,
+                       '. You can initiate a cloud function service by,\n gostep service init <service-name> env '
+                       '<runtime> trigger <invoked-by-type> inside <workspace_dir>']))
 
 
 def cred_valid(cred_file):
@@ -78,14 +80,14 @@ def cred_valid(cred_file):
 parser = argparse.ArgumentParser()
 modified_args = []
 
-print(sys.argv)
 if len(sys.argv) > 0:
+    if not validated(sys.argv):
+        exit(0)
     for arg_index in range(1, len(sys.argv)):
         if sys.argv[arg_index] in COMMANDS:
             modified_args.append(''.join(['--', sys.argv[arg_index]]))
         else:
             modified_args.append(sys.argv[arg_index])
-
 
 parser.add_argument(
     '-P',
@@ -94,17 +96,15 @@ parser.add_argument(
     help='GCloud projects list')
 
 parser.add_argument(
-    '-p',
-    '--project',
-    help='Gostep project related operations.')
-
-parser.add_argument(
     '-l',
     '--locations',
     action='store_true',
     help='GCloud locations list')
 
-parser.add_argument('-L', '--location', help='GCloud location Id')
+parser.add_argument(
+    '-L',
+    '--location',
+    help='GCloud region Id')
 
 parser.add_argument('-a', '--auth', action='store_true',
                     help='Credentials related operations')
@@ -133,36 +133,25 @@ parser.add_argument(
     '--explains',
     help='Description of something you want to create.')
 
-parser.add_argument(
-    '-n',
-    '--name',
-    help='Name identifier. Must be unique and greater than 6 chars.')
-
-parser.add_argument('-N', '--displayname', help='Display name.')
+parser.add_argument('-N', '--display-name', help='Display name.')
 
 parser.add_argument('-D', '--deploy', help='Deployment related options.')
 
 parser.add_argument('-e', '--env', help='Service runtime environment.')
 
-parser.add_argument('-v', '--version', help='Version of the base.')
-
 parser.add_argument('-g', '--gcloud', action='store_true', help='gcloud SDK based operations.')
 
 parser.add_argument('-t', '--trigger', help='Cloud function invocation type.')
 
-parser.add_argument('-c', '--config', help='Configure value in selected resource.')
+parser.add_argument('-A', '--allow-all', action='store_true', help='Allow public access to invoke function.')
 
-parser.add_argument('-I', '--invoker', help='Resource for event types.')
-
+parser.add_argument('-v', '--version', help='Version of the component.')
 
 args = parser.parse_args(modified_args)
 
-
 workspace = path.abspath('.' if args.inside is None else args.inside)
-workspace = workspace.replace(' ', '\\ ')
 auth_file_path = path.join(workspace, AUTH_FILE)
 base_config_file = path.join(workspace, BASE_CONFIG_FILE)
-
 
 if args.auth:
     if args.init is not None:
@@ -174,19 +163,15 @@ if args.auth:
             create_credentials(
                 args.init,
                 project,
-                args.init if args.displayname is None else args.displayname,
+                args.init if args.display_name is None else args.display_name,
                 workspace
             )
     elif args.init is None and args.show:
         if cred_valid(auth_file_path):
             print(json.dumps(credentials(auth_file_path), indent=4))
-    elif args.init is None and not args.show and args.inside is None:
-        print('Usage: gostep auth init <service-account-name> displayname <account-display-name> inside <workspace-dir>')
-    elif not args.init and args.inside is not None:
+    elif not args.init and workspace is not None:
         print(''.join(['Setting credential file in ', auth_file_path]))
         set_credential_file(auth_file_path)
-    else:
-        parser.error('bad')
 
 elif args.gcloud:
     if args.projects:
@@ -195,8 +180,6 @@ elif args.gcloud:
         if cred_valid(auth_file_path):
             set_credential_file(auth_file_path)
             locations(default_gcloud_project())
-    else:
-        print('Usage: gostep gcloud projects')
 
 elif args.base:
     if args.init is not None:
@@ -209,7 +192,7 @@ elif args.base:
                 create_credentials(
                     ''.join([args.init, '-service-account']),
                     project,
-                    args.init if args.displayname is None else args.displayname,
+                    args.init if args.display_name is None else args.display_name,
                     workspace
                 )
             print(''.join(['Setting credential file in ', auth_file_path]))
@@ -222,7 +205,7 @@ elif args.base:
             location,
             '0.1.0' if args.version is None else args.version
         )
-    else:
+    elif args.show:
         base_valid(base_config_file)
 
 elif args.service:
@@ -238,23 +221,9 @@ elif args.service:
                 args.env,
                 location,
                 '0.1.0' if args.version is None else args.version,
-                HTTP if args.trigger is None else args.trigger
+                HTTP if args.trigger is None else args.trigger,
+                args.allow_all
             )
-        elif not args.env or args.env not in ENVIRONMENTS:
-            print('-e --env Invalid runtime environment.')
-    elif args.config is not None:
-        service_config_file = ''.join([workspace, '/', args.config, '/', SERVICE_CONFIG_FILE])
-        if service_valid(service_config_file) and args.invoker is not None:
-            service_config = get_json_from_file(service_config_file)
-            if HTTPS_TRIGGER_KEY in service_config.keys():
-                print('Function already has been configured for https invoking. Cannot change resource.')
-            elif EVENT_TYPE in service_config.keys():
-                service_config[EVENT_TYPE][RESOURCE] = args.invoker
-        else:
-            print('Invalid service configuration, %s'%service_config_file)
-    else:
-        print('Usage: gostep service init <service-name> env <runtime> trigger <invoked-by-type> inside <workspace_dir>')
-
 
 elif args.deploy is not None:
     if cred_valid(auth_file_path) and base_valid(base_config_file):
@@ -271,8 +240,3 @@ elif args.deploy is not None:
                 deploy(args.deploy, location, workspace)
             else:
                 print('Invalid service name. Nothing to deploy.')
-
-else:
-    print('Serverless templates provider for Google cloud platform')
-    print('Version: 0.1.0beta')
-    print('-h, --help for how to use')
