@@ -234,16 +234,11 @@ def get_projects():
         List down available projects.
 
             Returns:
-                projects_list (object): list of project objects
+                projects_list (list): list of project information objects.
     """
     try:
-        response = str(subprocess.check_output('gcloud projects list', shell=True)).replace('\'', '').split('\\n')
-        project_list = []
-        for row in response:
-            if response.index(row) == 0:
-                continue
-            project_list.append(row.split(' ')[0])
-        return project_list
+        response = subprocess.check_output('gcloud projects list', shell=True)
+        return response.decode("utf-8").split('\n')
     except Exception:
         print(traceback.format_exc())
 
@@ -302,7 +297,7 @@ def get_service_account_email(account_name):
     try:
         cmd = 'gcloud iam service-accounts list'
         accounts_list_proc = subprocess.check_output(cmd, shell=True)
-        accounts_split = str(accounts_list_proc).replace('\\n', ' ').split()
+        accounts_split = accounts_list_proc.decode('utf-8').split()
         return [i for i in accounts_split if account_name in i and '.com' in i]
     except Exception:
         print(traceback.format_exc())
@@ -330,15 +325,15 @@ def create_credentials(name, project, display_name, workspace_dir):
             subprocess.check_output(cmd, shell=True)
             sleep(2)
             account_email = get_service_account_email(name)
+            cmd = ''.join(['gcloud projects add-iam-policy-binding ', project,
+                           ' --member serviceAccount:', account_email[0],
+                           ' --role "roles/editor"'])
+            policy_bind_proc = subprocess.check_output(cmd, shell=True)
         cmd = ''.join([
-            'gcloud iam service-accounts keys create ', workspace_dir, '/',
+            'gcloud iam service-accounts keys create "', workspace_dir, '/"',
             AUTH_FILE, ' --iam-account ', account_email[0]])
         subprocess.check_output(cmd, shell=True)
-        cmd = ''.join(['gcloud projects add-iam-policy-binding ', project,
-                       ' --member serviceAccount:', account_email[0],
-                       ' --role "roles/owner"'])
-        policy_bind_proc = subprocess.check_output(cmd, shell=True)
-        return True if 'Updated' in str(policy_bind_proc) else False
+        return True
     except Exception:
         print(traceback.format_exc())
 

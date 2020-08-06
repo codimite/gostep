@@ -86,6 +86,7 @@ CMD_TREE = {
         TYPE: BOOLEAN,
         'init': {
             TYPE: TEXT,
+            REQUIRED_FIELDS: [],
             VALIDATION_MESSAGES: [
                 'Error: Invalid command.\nUsage:'
                 '  gostep auth init <project name>',
@@ -109,7 +110,7 @@ CMD_TREE = {
             '  gostep auth init <project name>',
             '    Optional args:\n'
             '        display-name <service account display name>\n'
-            '        inside <workspace directory>'
+            '        inside <workspace directory>',
             '  gostep auth show',
             '    Optional args:\n'
             '        inside <workspace directory>'
@@ -119,6 +120,7 @@ CMD_TREE = {
         TYPE: BOOLEAN,
         'init': {
             TYPE: TEXT,
+            REQUIRED_FIELDS: [],
             VALIDATION_MESSAGES: [
                 'Error: Invalid command.\nUsage:'
                 '  gostep base init <project name>',

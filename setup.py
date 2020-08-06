@@ -13,7 +13,7 @@ setup(
     scripts=[
         './bin/gostep'
     ],
-    version='0.1.0-beta4',
+    version='0.1.0-beta10',
     description='Serverless Templates Provider for Google Cloud platform',
     url='https://github.com/codimite/gostep',
     author='Lahiru Pathirage',

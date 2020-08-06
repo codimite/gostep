@@ -28,10 +28,11 @@ def validate_fields(arg_schema_branch, args):
                 print_messages(arg_schema_branch[VALIDATION_MESSAGES])
                 return False
             for arg in arg_schema_field_keys:
-                index = args.index(arg)
-                if args[index != len(args) - 1] and args[index + 1] not in COMMANDS:
-                    print_messages(arg_schema_branch[VALIDATION_MESSAGES])
-                    return False
+                if arg in args:
+                    index = args.index(arg)
+                    if index != len(args) - 1 and args[index + 1] not in COMMANDS:
+                        print_messages(arg_schema_branch[VALIDATION_MESSAGES])
+                        return False
             return True
     return True
 
@@ -63,7 +64,7 @@ def validated(args=None):
                         if index == len(args) - 1 or args[index + 1] in COMMANDS:
                             print_messages(arg_schema[VALIDATION_MESSAGES])
                             return False
-                    elif arg_schema[arg_schema_key] == BOOLEAN and args[index + 1] in COMMANDS and args[index + 1] in arg_schema.keys() and arg_schema[args[index + 1]][TYPE] == BOOLEAN:
+                    elif arg_schema[arg_schema_key] == BOOLEAN and args[index + 1] in COMMANDS and args[index + 1] in arg_schema.keys():
                         return True
                 elif arg_schema_key == REQUIRED_FIELDS:
                     if not validate_fields(arg_schema, args):
