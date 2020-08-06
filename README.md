@@ -27,6 +27,9 @@ python setup install
 #### CLI Help
 Simply use command `gostep` to get the available command list.
 
+### Guide
+For more information please refer the [wiki](https://github.com/codimite/gostep/wiki).
+
 ## License
 MIT License
 Copyright (c) 2018 Lahiru Pathirage and Codimite pvt ltd.
