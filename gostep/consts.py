@@ -51,6 +51,8 @@ REQUIRED_FIELDS = 'required'
 TYPE = 'type'
 TEXT = 'text'
 BOOLEAN = 'boolean'
+BRANCH = 'branch'
+LEAF = 'leaf'
 TRIGGERS = ['http', 'pubsub', 'storage']
 
 COMMANDS = [
@@ -84,7 +86,11 @@ CMD_BRANCHES = [
 CMD_TREE = {
     'auth': {
         TYPE: BOOLEAN,
+        BRANCH: True,
+        LEAF: False,
         'init': {
+            BRANCH: False,
+            LEAF: True,
             TYPE: TEXT,
             REQUIRED_FIELDS: [],
             VALIDATION_MESSAGES: [
@@ -103,6 +109,8 @@ CMD_TREE = {
             ]
         },
         'show': {
+            BRANCH: False,
+            LEAF: True,
             TYPE: BOOLEAN
         },
         VALIDATION_MESSAGES: [
@@ -117,8 +125,12 @@ CMD_TREE = {
         ]
     },
     'base': {
+        BRANCH: True,
+        LEAF: False,
         TYPE: BOOLEAN,
         'init': {
+            BRANCH: False,
+            LEAF: True,
             TYPE: TEXT,
             REQUIRED_FIELDS: [],
             VALIDATION_MESSAGES: [
@@ -132,6 +144,8 @@ CMD_TREE = {
             ]
         },
         'show': {
+            BRANCH: False,
+            LEAF: True,
             TYPE: BOOLEAN
         },
         VALIDATION_MESSAGES: [
@@ -149,6 +163,8 @@ CMD_TREE = {
     },
     'deploy': {
         TYPE: TEXT,
+        BRANCH: False,
+        LEAF: True,
         VALIDATION_MESSAGES: [
             'Error: Invalid command.\nUsage:',
             '  gostep deploy diff',
@@ -160,6 +176,8 @@ CMD_TREE = {
         ]
     },
     'gcloud': {
+        BRANCH: True,
+        LEAF: False,
         TYPE: BOOLEAN,
         REQUIRED_FIELDS: [
             {
@@ -183,8 +201,12 @@ CMD_TREE = {
     },
     'service': {
         TYPE: BOOLEAN,
+        BRANCH: True,
+        LEAF: False,
         'init': {
             TYPE: TEXT,
+            BRANCH: False,
+            LEAF: True,
             REQUIRED_FIELDS: {
                 'env': {
                     TYPE: TEXT,

@@ -42,7 +42,7 @@ def get_location(location_id, default_location):
 
 
 def locations(project_id):
-    print('Fetching locations list for glcoud project %s...' % project_id)
+    print('Fetching regions for glcoud project %s...' % project_id)
     for element in get_locations(project_id):
         print(element['locationId'])
 

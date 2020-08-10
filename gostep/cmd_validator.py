@@ -1,4 +1,5 @@
-from gostep.consts import CMD_TREE, VALIDATION_MESSAGES, TYPE, TEXT, REQUIRED_FIELDS, BOOLEAN, CMD_BRANCHES, COMMANDS
+from gostep.consts import CMD_TREE, VALIDATION_MESSAGES, TYPE, TEXT, REQUIRED_FIELDS, BOOLEAN, CMD_BRANCHES, COMMANDS, \
+    BRANCH, LEAF
 
 
 def print_messages(msgs):
@@ -53,10 +54,10 @@ def validated(args=None):
     for arg_index in range(0, len(args)):
         if args[arg_index] in CMD_BRANCHES:
             arg_schema = CMD_TREE[args[arg_index]]
-            if arg_index == len(args) - 1 and arg_schema[TYPE] == BOOLEAN:
+            if arg_index == len(args) - 1 and arg_schema[TYPE] == BOOLEAN and arg_schema[LEAF]:
                 return True
             for arg_schema_key in arg_schema.keys():
-                if arg_schema_key == VALIDATION_MESSAGES:
+                if arg_schema_key == VALIDATION_MESSAGES or arg_schema_key == BRANCH or arg_schema_key == LEAF:
                     continue
                 elif arg_schema_key == TYPE:
                     index = args.index(args[arg_index])
@@ -64,7 +65,7 @@ def validated(args=None):
                         if index == len(args) - 1 or args[index + 1] in COMMANDS:
                             print_messages(arg_schema[VALIDATION_MESSAGES])
                             return False
-                    elif arg_schema[arg_schema_key] == BOOLEAN and args[index + 1] in COMMANDS and args[index + 1] in arg_schema.keys():
+                    elif arg_schema[arg_schema_key] == BOOLEAN and index != len(args) - 1 and args[index + 1] in COMMANDS and args[index + 1] in arg_schema.keys():
                         return True
                 elif arg_schema_key == REQUIRED_FIELDS:
                     if not validate_fields(arg_schema, args):
